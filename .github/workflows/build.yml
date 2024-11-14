@@ -51,6 +51,44 @@ jobs:
         name: vcf_assembly_checker_linux
         path: vcf_assembly_checker_linux
 
+  ### Linux ARM build
+  linux_build_arm:
+    runs-on: ubuntu-arm
+    strategy:
+      matrix:
+        config:
+          - {cc: "gcc", cxx: "g++"}
+          - {cc: "clang-10", cxx: "clang++-10"}
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install cmake wget build-essential
+        ./install_dependencies.sh
+    - name: Compile and test
+      run: |
+        mkdir build && cd build && cmake -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=${{ matrix.config.cxx }} -DCMAKE_C_COMPILER=${{ matrix.config.cc }} -DSTATIC_BUILD=1 ..
+        make -j2
+        cd .. && ./build/bin/test_validation_suite
+    - name: Rename release files
+      if: ${{ matrix.config.cc == 'gcc' }}
+      run: |
+        mv build/bin/vcf_validator vcf_validator_linux
+        mv build/bin/vcf_assembly_checker vcf_assembly_checker_linux
+    - name: Upload vcf-validator
+      uses: actions/upload-artifact@v3
+      if: ${{ matrix.config.cc == 'gcc' }}
+      with:
+        name: vcf_validator_linux
+        path: vcf_validator_linux
+    - name: Upload vcf-assembly-checker
+      uses: actions/upload-artifact@v3
+      if: ${{ matrix.config.cc == 'gcc' }}
+      with:
+        name: vcf_assembly_checker_linux
+        path: vcf_assembly_checker_linux
 
   ### Mac OS build intel
   macos_build_intel:
